@@ -5,7 +5,7 @@ namespace BookLibrary.API.Data
 {
     public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
     {
-        public DbSet<Book> Books { get; set; }
+        public DbSet<Book> Books { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
