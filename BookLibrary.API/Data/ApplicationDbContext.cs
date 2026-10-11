@@ -18,7 +18,7 @@ namespace BookLibrary.API.Data
                 entity.Property(e => e.Isbn).IsRequired().HasMaxLength(17);
                 entity.Property(e => e.PublishedYear).IsRequired();
                 entity.Property(e => e.Genre).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Author).HasMaxLength(2000);
+                entity.Property(e => e.Description).HasMaxLength(2000);
 
                 entity.HasIndex(e => e.Isbn).IsUnique();
             });
