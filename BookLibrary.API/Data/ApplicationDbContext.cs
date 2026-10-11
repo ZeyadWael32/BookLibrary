@@ -11,6 +11,17 @@ namespace BookLibrary.API.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<Book>(entity =>
+            {
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Author).IsRequired().HasMaxLength(150);
+                entity.Property(e => e.Isbn).IsRequired().HasMaxLength(17);
+                entity.Property(e => e.PublishedYear).IsRequired();
+                entity.Property(e => e.Genre).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Author).HasMaxLength(2000);
+
+                entity.HasIndex(e => e.Isbn).IsUnique();
+            });
         }
     }
 }
