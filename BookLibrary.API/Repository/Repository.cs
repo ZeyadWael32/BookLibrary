@@ -12,7 +12,7 @@ namespace BookLibrary.API.Repository
         public Repository(ApplicationDbContext db)
         {
             _db = db;
-            dbSet = _db.Set<TEntity>();
+            dbSet = _db.Set<TEntity>(); 
         }
         public async Task CreateAsync(TEntity entity, CancellationToken cancellationToken = default)
         {
@@ -66,7 +66,7 @@ namespace BookLibrary.API.Repository
 
         public async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
         {
-            return await dbSet.FindAsync(id, cancellationToken);
+            return await dbSet.FindAsync(new object?[] { id }, cancellationToken);
         }
 
         public async Task SaveAsync(CancellationToken cancellationToken = default)
