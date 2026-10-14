@@ -1,9 +1,8 @@
 ﻿using BookLibrary.API.Models;
 
-namespace BookLibrary.API.Repository.IRepository
+namespace BookLibrary.API.Repository.IRepository;
+
+public interface IBookRepository : IRepository<Book, int>
 {
-    public interface IBookRepository : IRepository<Book, int>
-    {
-        Task UpdateAsync(Book entity, CancellationToken cancellationToken = default);
-    }
+    Task UpdateAsync(Book entity, CancellationToken cancellationToken = default);
 }

@@ -1,27 +1,26 @@
 ﻿using BookLibrary.API.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace BookLibrary.API.Data
+namespace BookLibrary.API.Data;
+
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
-    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+    public DbSet<Book> Books { get; set; } = null!;
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        public DbSet<Book> Books { get; set; } = null!;
+        base.OnModelCreating(modelBuilder);
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        modelBuilder.Entity<Book>(entity =>
         {
-            base.OnModelCreating(modelBuilder);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Author).IsRequired().HasMaxLength(150);
+            entity.Property(e => e.Isbn).IsRequired().HasMaxLength(17);
+            entity.Property(e => e.PublishedYear).IsRequired();
+            entity.Property(e => e.Genre).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(2000);
 
-            modelBuilder.Entity<Book>(entity =>
-            {
-                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Author).IsRequired().HasMaxLength(150);
-                entity.Property(e => e.Isbn).IsRequired().HasMaxLength(17);
-                entity.Property(e => e.PublishedYear).IsRequired();
-                entity.Property(e => e.Genre).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.Description).HasMaxLength(2000);
-
-                entity.HasIndex(e => e.Isbn).IsUnique();
-            });
-        }
+            entity.HasIndex(e => e.Isbn).IsUnique();
+        });
     }
 }

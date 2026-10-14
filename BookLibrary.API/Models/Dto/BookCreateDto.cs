@@ -1,24 +1,24 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using BookLibrary.API.Validation;
+using System.ComponentModel.DataAnnotations;
 
-namespace BookLibrary.API.Models.Dto
+namespace BookLibrary.API.Models.Dto;
+
+public class BookCreateDto
 {
-    public class BookCreateDto
-    {
-        [Required]
-        [StringLength(200)]
-        public string Title { get; set; } = string.Empty;
-        [Required]
-        [StringLength(150)]
-        public string Author { get; set; } = string.Empty;
-        [Required]
-        [StringLength(17)]
-        public string Isbn { get; set; } = string.Empty;
-        [Range(1450, 2100, ErrorMessage = "Published year must be between 1450 and 2100.")]
-        public int PublishedYear { get; set; }
-        [Required]
-        [StringLength(100)]
-        public string Genre { get; set; } = string.Empty;
-        [StringLength(2000)]
-        public string? Description { get; set; }
-    }
+    [Required]
+    [StringLength(200)]
+    public string Title { get; set; } = string.Empty;
+    [Required]
+    [StringLength(150)]
+    public string Author { get; set; } = string.Empty;
+    [Required]
+    [Isbn13]
+    public string Isbn { get; set; } = string.Empty;
+    [Range(1450, 2100, ErrorMessage = "Published year must be between 1450 and 2100.")]
+    public int PublishedYear { get; set; }
+    [Required]
+    [StringLength(100)]
+    public string Genre { get; set; } = string.Empty;
+    [StringLength(2000)]
+    public string? Description { get; set; }
 }
