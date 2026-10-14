@@ -6,6 +6,10 @@ public class Isbn13Attribute : ValidationAttribute
 {
     public override bool IsValid(object? value)
     {
+        if (value is null || value is string isbnValue && string.IsNullOrEmpty(isbnValue))
+        {
+            return true; // Allow null or empty values, use [Required] for mandatory fields
+        }
         if (value is not string isbn)
         {
             return false;
@@ -18,7 +22,7 @@ public class Isbn13Attribute : ValidationAttribute
         {
             return false;
         }
-        if (!isbn.All(char.IsDigit))
+        if (!isbn.All(char.IsAsciiDigit))
         {
             return false;
         }

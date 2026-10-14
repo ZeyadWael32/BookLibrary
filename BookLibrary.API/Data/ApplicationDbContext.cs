@@ -15,7 +15,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Author).IsRequired().HasMaxLength(150);
-            entity.Property(e => e.Isbn).IsRequired().HasMaxLength(17);
+            entity.Property(e => e.Isbn).IsRequired().HasMaxLength(13);
             entity.Property(e => e.PublishedYear).IsRequired();
             entity.Property(e => e.Genre).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Description).HasMaxLength(2000);
