@@ -26,9 +26,13 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey> where TEntit
         await SaveAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<TEntity>> GetAllAsync(Expression<Func<TEntity, bool>>? filter = null, string? includeProperties = null, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<TEntity>> GetAllAsync(Expression<Func<TEntity, bool>>? filter = null, bool tracked = false, string? includeProperties = null, CancellationToken cancellationToken = default)
     {
         IQueryable<TEntity> query = dbSet;
+        if (!tracked)
+        {
+            query = query.AsNoTracking();
+        }
         if (filter != null)
         {
             query = query.Where(filter);

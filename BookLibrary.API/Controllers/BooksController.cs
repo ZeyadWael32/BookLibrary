@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookLibrary.API.Controllers;
 
-[Route("api/BookAPI")]
+[Route("api/[controller]")]
 [ApiController]
-public class BookAPIController : ControllerBase
+public class BooksController : ControllerBase
 {
     private readonly IBookRepository _bookRepository;
     private readonly IMapper _mapper;
-    public BookAPIController(IBookRepository bookRepository, IMapper mapper)
+    public BooksController(IBookRepository bookRepository, IMapper mapper)
     {
         _bookRepository = bookRepository;
         _mapper = mapper;
@@ -22,7 +22,7 @@ public class BookAPIController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks(CancellationToken cancellationToken)
     {
-        var bookList = await _bookRepository.GetAllAsync(cancellationToken: cancellationToken);
+        var bookList = await _bookRepository.GetAllAsync(tracked: false, cancellationToken: cancellationToken);
         var response = _mapper.Map<IEnumerable<BookDto>>(bookList);
         return Ok(response);
     }
@@ -33,7 +33,7 @@ public class BookAPIController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BookDto>> GetBook(int id, CancellationToken cancellationToken)
     {
-        var book = await _bookRepository.GetAsync(u => u.Id == id, cancellationToken: cancellationToken);
+        var book = await _bookRepository.GetAsync(u => u.Id == id, tracked: false, cancellationToken: cancellationToken);
         if (book is null)
         {
             return NotFound();
