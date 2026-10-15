@@ -1,5 +1,6 @@
 using BookLibrary.API;
 using BookLibrary.API.Data;
+using BookLibrary.API.Exceptions;
 using BookLibrary.API.Repository;
 using BookLibrary.API.Repository.IRepository;
 using Microsoft.EntityFrameworkCore;
@@ -26,9 +27,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+app.UseExceptionHandler();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

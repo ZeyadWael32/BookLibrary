@@ -19,6 +19,7 @@ public class BookAPIController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks(CancellationToken cancellationToken)
     {
         var bookList = await _bookRepository.GetAllAsync(cancellationToken: cancellationToken);
@@ -29,6 +30,7 @@ public class BookAPIController : ControllerBase
     [HttpGet("{id:int}", Name = "GetBook")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BookDto>> GetBook(int id, CancellationToken cancellationToken)
     {
         var book = await _bookRepository.GetAsync(u => u.Id == id, cancellationToken: cancellationToken);
