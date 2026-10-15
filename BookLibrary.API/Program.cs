@@ -1,3 +1,4 @@
+using BookLibrary.API;
 using BookLibrary.API.Data;
 using BookLibrary.API.Repository;
 using BookLibrary.API.Repository.IRepository;
@@ -17,7 +18,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
 builder.Services.AddScoped<IBookRepository, BookRepository>();
-
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<MappingConfig>();
+});
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
