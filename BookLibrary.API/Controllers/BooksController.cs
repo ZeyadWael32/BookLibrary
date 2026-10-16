@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using BookLibrary.API.Models;
 using BookLibrary.API.Models.Dto;
 using BookLibrary.API.Repository.IRepository;
 using Microsoft.AspNetCore.Mvc;
@@ -40,5 +41,27 @@ public class BooksController : ControllerBase
         }
         var response = _mapper.Map<BookDto>(book);
         return Ok(response);
+    }
+
+    [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BookDto>> CreateBook([FromBody] BookCreateDto createDto, CancellationToken cancellationToken)
+    {
+        if (await _bookRepository.IsbnExistsAsync(createDto.Isbn, cancellationToken))
+        {
+            return Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "ISBN already exists",
+                Detail = "A book with the provided ISBN already exists."
+            });
+        }
+        Book book = _mapper.Map<Book>(createDto);
+        await _bookRepository.CreateAsync(book, cancellationToken);
+        var response = _mapper.Map<BookDto>(book);
+        return CreatedAtRoute("GetBook", new { id = book.Id }, response);
     }
 }

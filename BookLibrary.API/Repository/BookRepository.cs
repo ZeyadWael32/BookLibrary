@@ -1,6 +1,7 @@
 ﻿using BookLibrary.API.Data;
 using BookLibrary.API.Models;
 using BookLibrary.API.Repository.IRepository;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookLibrary.API.Repository;
 
@@ -16,5 +17,10 @@ public class BookRepository : Repository<Book, int>, IBookRepository
     {
         _db.Books.Update(entity);
         await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<bool> IsbnExistsAsync(string isbn, CancellationToken cancellationToken = default)
+    {
+        return await _db.Books.AnyAsync(b => b.Isbn == isbn, cancellationToken);
     }
 }
