@@ -4,6 +4,7 @@ using BookLibrary.API.Exceptions;
 using BookLibrary.API.Repository;
 using BookLibrary.API.Repository.IRepository;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +39,7 @@ app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapScalarApiReference(options => options.WithOpenApiRoutePattern("/swagger/{documentName}/swagger.json"));
 }
 
 app.UseHttpsRedirection();
