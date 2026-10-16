@@ -19,8 +19,8 @@ public class BookRepository : Repository<Book, int>, IBookRepository
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<bool> IsbnExistsAsync(string isbn, CancellationToken cancellationToken = default)
+    public async Task<bool> IsbnExistsAsync(string isbn, int? excludeId = null, CancellationToken cancellationToken = default)
     {
-        return await _db.Books.AnyAsync(b => b.Isbn == isbn, cancellationToken);
+        return await _db.Books.AnyAsync(b => b.Isbn == isbn && (!excludeId.HasValue || b.Id != excludeId.Value), cancellationToken);
     }
 }

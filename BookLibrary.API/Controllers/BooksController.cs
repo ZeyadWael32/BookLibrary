@@ -50,7 +50,7 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BookDto>> CreateBook([FromBody] BookCreateDto createDto, CancellationToken cancellationToken)
     {
-        if (await _bookRepository.IsbnExistsAsync(createDto.Isbn, cancellationToken))
+        if (await _bookRepository.IsbnExistsAsync(createDto.Isbn, cancellationToken: cancellationToken))
         {
             return Conflict(new ProblemDetails
             {
@@ -63,5 +63,34 @@ public class BooksController : ControllerBase
         await _bookRepository.CreateAsync(book, cancellationToken);
         var response = _mapper.Map<BookDto>(book);
         return CreatedAtRoute("GetBook", new { id = book.Id }, response);
+    }
+
+    [HttpPut("{id:int}", Name = "UpdateBook")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BookDto>> UpdateBook(int id, [FromBody] BookUpdateDto updateDto, CancellationToken cancellationToken)
+    {
+        if (await _bookRepository.GetAsync(u => u.Id == id, tracked: true, cancellationToken: cancellationToken) is not Book book)
+        {
+            return NotFound();
+        }
+
+        if (await _bookRepository.IsbnExistsAsync(updateDto.Isbn, excludeId: id, cancellationToken: cancellationToken))
+        {
+            return Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "ISBN already exists",
+                Detail = "A book with the provided ISBN already exists."
+            });
+        }
+
+        _mapper.Map(updateDto, book); // Map the updateDto to the existing book entity not creating a new instance
+        await _bookRepository.UpdateAsync(book, cancellationToken);
+        var response = _mapper.Map<BookDto>(book);
+        return Ok(response);
     }
 }
