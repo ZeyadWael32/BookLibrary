@@ -7,6 +7,7 @@ public class Book
     public string Author { get; set; } = string.Empty;
     public string Isbn { get; set; } = string.Empty;
     public int PublishedYear { get; set; }
-    public string Genre { get; set; } = string.Empty;
+    public int CategoryId { get; set; }
+    public Category Category { get; set; } = null!;
     public string? Description { get; set; }
 }

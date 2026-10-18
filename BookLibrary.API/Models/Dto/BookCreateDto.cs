@@ -17,8 +17,8 @@ public class BookCreateDto
     [Range(1450, 2100, ErrorMessage = "Published year must be between 1450 and 2100.")]
     public int PublishedYear { get; set; }
     [Required]
-    [StringLength(100)]
-    public string Genre { get; set; } = string.Empty;
+    [StringLength(50)]
+    public int CategoryId { get; set; }
     [StringLength(2000)]
     public string? Description { get; set; }
 }

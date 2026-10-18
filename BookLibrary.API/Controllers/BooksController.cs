@@ -11,10 +11,12 @@ namespace BookLibrary.API.Controllers;
 public class BooksController : ControllerBase
 {
     private readonly IBookRepository _bookRepository;
+    private readonly ICategoryRepository _categoryRepository;
     private readonly IMapper _mapper;
-    public BooksController(IBookRepository bookRepository, IMapper mapper)
+    public BooksController(IBookRepository bookRepository, ICategoryRepository categoryRepository, IMapper mapper)
     {
         _bookRepository = bookRepository;
+        _categoryRepository = categoryRepository;
         _mapper = mapper;
     }
 
@@ -23,7 +25,7 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks(CancellationToken cancellationToken)
     {
-        var bookList = await _bookRepository.GetAllAsync(tracked: false, cancellationToken: cancellationToken);
+        var bookList = await _bookRepository.GetAllAsync(tracked: false, includeProperties: "Category", cancellationToken: cancellationToken);
         var response = _mapper.Map<IEnumerable<BookDto>>(bookList);
         return Ok(response);
     }
@@ -34,7 +36,7 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BookDto>> GetBook(int id, CancellationToken cancellationToken)
     {
-        var book = await _bookRepository.GetAsync(u => u.Id == id, tracked: false, cancellationToken: cancellationToken);
+        var book = await _bookRepository.GetAsync(u => u.Id == id, tracked: false, includeProperties: "Category", cancellationToken: cancellationToken);
         if (book is null)
         {
             return NotFound();
@@ -50,6 +52,18 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BookDto>> CreateBook([FromBody] BookCreateDto createDto, CancellationToken cancellationToken)
     {
+        var category = await _categoryRepository.GetAsync(c => c.Id == createDto.CategoryId, tracked: false, cancellationToken: cancellationToken);
+
+        if (category is null)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Invalid category",
+                Detail = "The provided category ID is invalid."
+            });
+        }
+
         if (await _bookRepository.IsbnExistsAsync(createDto.Isbn, cancellationToken: cancellationToken))
         {
             return Conflict(new ProblemDetails
@@ -59,9 +73,11 @@ public class BooksController : ControllerBase
                 Detail = "A book with the provided ISBN already exists."
             });
         }
+
         Book book = _mapper.Map<Book>(createDto);
         await _bookRepository.CreateAsync(book, cancellationToken);
-        var response = _mapper.Map<BookDto>(book);
+        var createdBook = await _bookRepository.GetAsync(u => u.Id == book.Id, tracked: false, includeProperties: "Category", cancellationToken: cancellationToken);
+        var response = _mapper.Map<BookDto>(createdBook);
         return CreatedAtRoute("GetBook", new { id = book.Id }, response);
     }
 
@@ -73,9 +89,21 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BookDto>> UpdateBook(int id, [FromBody] BookUpdateDto updateDto, CancellationToken cancellationToken)
     {
-        if (await _bookRepository.GetAsync(u => u.Id == id, tracked: true, cancellationToken: cancellationToken) is not Book book)
+        if (await _bookRepository.GetAsync(u => u.Id == id, tracked: true, includeProperties: "Category", cancellationToken: cancellationToken) is not Book book)
         {
             return NotFound();
+        }
+
+        var category = await _categoryRepository.GetAsync(c => c.Id == updateDto.CategoryId, tracked: false, cancellationToken: cancellationToken);
+
+        if (category is null)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Invalid category",
+                Detail = "The provided category ID is invalid."
+            });
         }
 
         if (await _bookRepository.IsbnExistsAsync(updateDto.Isbn, excludeId: id, cancellationToken: cancellationToken))
@@ -90,7 +118,8 @@ public class BooksController : ControllerBase
 
         _mapper.Map(updateDto, book); // Map the updateDto to the existing book entity not creating a new instance
         await _bookRepository.UpdateAsync(book, cancellationToken);
-        var response = _mapper.Map<BookDto>(book);
+        var updatedBook = await _bookRepository.GetAsync(u => u.Id == book.Id, tracked: false, includeProperties: "Category", cancellationToken: cancellationToken);
+        var response = _mapper.Map<BookDto>(updatedBook);
         return Ok(response);
     }
 
@@ -100,7 +129,7 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteBook(int id, CancellationToken cancellationToken)
     {
-        if (await _bookRepository.GetAsync(u => u.Id == id, tracked: true, cancellationToken: cancellationToken) is not Book book)
+        if (await _bookRepository.GetAsync(u => u.Id == id, tracked: true, includeProperties: "Category", cancellationToken: cancellationToken) is not Book book)
         {
             return NotFound();
         }

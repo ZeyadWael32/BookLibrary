@@ -8,7 +8,7 @@ namespace BookLibrary.API
     {
         public MappingConfig()
         {
-            CreateMap<Book, BookDto>().ReverseMap();
+            CreateMap<Book, BookDto>().ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name)).ReverseMap();
             CreateMap<Book, BookCreateDto>().ReverseMap();
             CreateMap<Book, BookUpdateDto>().ReverseMap();
         }
