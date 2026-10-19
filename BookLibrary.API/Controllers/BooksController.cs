@@ -30,7 +30,7 @@ public class BooksController : ControllerBase
         return Ok(response);
     }
 
-    [HttpGet("{id:int}", Name = "GetBook")]
+    [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -81,7 +81,7 @@ public class BooksController : ControllerBase
         return CreatedAtRoute("GetBook", new { id = book.Id }, response);
     }
 
-    [HttpPut("{id:int}", Name = "UpdateBook")]
+    [HttpPut("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -89,7 +89,9 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BookDto>> UpdateBook(int id, [FromBody] BookUpdateDto updateDto, CancellationToken cancellationToken)
     {
-        if (await _bookRepository.GetAsync(u => u.Id == id, tracked: true, includeProperties: "Category", cancellationToken: cancellationToken) is not Book book)
+        var bookToUpdate = await _bookRepository.GetAsync(u => u.Id == id, tracked: true, includeProperties: "Category", cancellationToken: cancellationToken);
+
+        if (bookToUpdate is null)
         {
             return NotFound();
         }
@@ -116,9 +118,9 @@ public class BooksController : ControllerBase
             });
         }
 
-        _mapper.Map(updateDto, book); // Map the updateDto to the existing book entity not creating a new instance
-        await _bookRepository.UpdateAsync(book, cancellationToken);
-        var updatedBook = await _bookRepository.GetAsync(u => u.Id == book.Id, tracked: false, includeProperties: "Category", cancellationToken: cancellationToken);
+        _mapper.Map(updateDto, bookToUpdate); // Map the updateDto to the existing book entity not creating a new instance
+        await _bookRepository.UpdateAsync(bookToUpdate, cancellationToken);
+        var updatedBook = await _bookRepository.GetAsync(u => u.Id == bookToUpdate.Id, tracked: false, includeProperties: "Category", cancellationToken: cancellationToken);
         var response = _mapper.Map<BookDto>(updatedBook);
         return Ok(response);
     }
@@ -129,7 +131,9 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteBook(int id, CancellationToken cancellationToken)
     {
-        if (await _bookRepository.GetAsync(u => u.Id == id, tracked: true, includeProperties: "Category", cancellationToken: cancellationToken) is not Book book)
+        var book = await _bookRepository.GetAsync(u => u.Id == id, tracked: true, includeProperties: "Category", cancellationToken: cancellationToken);
+
+        if (book is null)
         {
             return NotFound();
         }

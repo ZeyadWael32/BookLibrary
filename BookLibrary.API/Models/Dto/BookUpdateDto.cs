@@ -17,7 +17,7 @@ public class BookUpdateDto
     [Range(1450, 2100, ErrorMessage = "Published year must be between 1450 and 2100.")]
     public int PublishedYear { get; set; }
     [Required]
-    [StringLength(50)]
+    [Range(1, int.MaxValue, ErrorMessage = "CategoryId must be a positive integer.")]
     public int CategoryId { get; set; }
     [StringLength(2000)]
     public string? Description { get; set; }
