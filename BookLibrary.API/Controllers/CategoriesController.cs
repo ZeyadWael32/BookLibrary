@@ -103,6 +103,7 @@ public class CategoriesController : ControllerBase
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> DeleteCategory(int id, CancellationToken cancellationToken)
     {
@@ -111,6 +112,17 @@ public class CategoriesController : ControllerBase
         {
             return NotFound();
         }
+
+        if (await _categoryRepository.HasBooksAsync(id, cancellationToken))
+        {
+            return Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "Category has associated books",
+                Detail = "Cannot delete a category that has associated books."
+            });
+        }
+
         await _categoryRepository.RemoveAsync(category, cancellationToken);
         return NoContent();
     }
