@@ -30,7 +30,7 @@ public class BooksController : ControllerBase
         return Ok(response);
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = "GetBook")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -81,7 +81,7 @@ public class BooksController : ControllerBase
         return CreatedAtRoute("GetBook", new { id = book.Id }, response);
     }
 
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:int}", Name = "UpdateBook")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -132,7 +132,6 @@ public class BooksController : ControllerBase
     public async Task<IActionResult> DeleteBook(int id, CancellationToken cancellationToken)
     {
         var book = await _bookRepository.GetAsync(u => u.Id == id, tracked: true, includeProperties: "Category", cancellationToken: cancellationToken);
-
         if (book is null)
         {
             return NotFound();

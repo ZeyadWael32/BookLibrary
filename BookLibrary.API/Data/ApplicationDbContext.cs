@@ -30,7 +30,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<Category>(entity =>
         {
-            entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(50).UseCollation("SQL_Latin1_General_CP1_CI_AS");
+            entity.HasIndex(e => e.Name).IsUnique();
         });
     }
 }
