@@ -5,6 +5,7 @@ using BookLibrary.API.Repository;
 using BookLibrary.API.Repository.IRepository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace BookLibrary.API.Controllers;
 
@@ -23,11 +24,12 @@ public class CategoriesController : ControllerBase
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PagedResponse<CategoryDto>>> GetCategories(CancellationToken cancellationToken,
-        [FromQuery, Range(1, 100)] int pageSize = 10, [FromQuery] int pageNumber = 1)
+        [FromQuery, Range(1, 100)] int pageSize = 10, [FromQuery, Range(1, int.MaxValue)] int pageNumber = 1)
     {
-        var categoryList = await _categoryRepository.GetAllAsync(tracked: false, cancellationToken: cancellationToken);
+        var categoryList = await _categoryRepository.GetAllAsync(tracked: false, cancellationToken: cancellationToken, pageSize: pageSize, pageNumber: pageNumber);
         var totalCount = await _categoryRepository.CountAsync(cancellationToken: cancellationToken);
         var items = _mapper.Map<IEnumerable<CategoryDto>>(categoryList);
         var response = new PagedResponse<CategoryDto>

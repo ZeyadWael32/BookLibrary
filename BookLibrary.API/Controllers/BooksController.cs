@@ -25,9 +25,10 @@ public class BooksController : ControllerBase
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PagedResponse<BookDto>>> GetBooks(CancellationToken cancellationToken,
-        [FromQuery, Range(1, 100)] int pageSize = 10, [FromQuery] int pageNumber = 1)
+        [FromQuery, Range(1, 100)] int pageSize = 10, [FromQuery, Range(1, int.MaxValue)] int pageNumber = 1)
     {
         var bookList = await _bookRepository.GetAllAsync(tracked: false, includeProperties: "Category", cancellationToken: cancellationToken, pageSize: pageSize, pageNumber: pageNumber);
         var totalCount = await _bookRepository.CountAsync(cancellationToken: cancellationToken);
