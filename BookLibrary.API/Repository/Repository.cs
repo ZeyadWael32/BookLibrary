@@ -26,9 +26,11 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey> where TEntit
         await SaveAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<TEntity>> GetAllAsync(Expression<Func<TEntity, bool>>? filter = null, bool tracked = false, string? includeProperties = null, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<TEntity>> GetAllAsync(Expression<Func<TEntity, bool>>? filter = null, bool tracked = false, string? includeProperties = null, CancellationToken cancellationToken = default,
+        int pageSize = 10, int pageNumber = 1)
     {
         IQueryable<TEntity> query = dbSet;
+
         if (!tracked)
         {
             query = query.AsNoTracking();
@@ -41,10 +43,14 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey> where TEntit
         {
             foreach (var includeProperty in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                query = query.Include(includeProperty);
+                query = query.Include(includeProperty.Trim());
             }
         }
-        return await query.ToListAsync(cancellationToken);
+        return await query
+            .OrderBy(e => EF.Property<object>(e, "Id"))
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<TEntity?> GetAsync(Expression<Func<TEntity, bool>>? filter = null, bool tracked = true, string? includeProperties = null, CancellationToken cancellationToken = default)
@@ -62,7 +68,7 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey> where TEntit
         {
             foreach (var includeProperty in includeProperties.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
             {
-                query = query.Include(includeProperty);
+                query = query.Include(includeProperty.Trim());
             }
         }
         return await query.FirstOrDefaultAsync(cancellationToken);
@@ -76,5 +82,15 @@ public class Repository<TEntity, TKey> : IRepository<TEntity, TKey> where TEntit
     public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
         await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<int> CountAsync(Expression<Func<TEntity, bool>>? filter = null, CancellationToken cancellationToken = default)
+    {
+        IQueryable<TEntity> query = dbSet;
+        if (filter != null)
+        {
+            query = query.Where(filter);
+        }
+        return await query.CountAsync(cancellationToken);
     }
 }

@@ -4,6 +4,7 @@ using BookLibrary.API.Models.Dto;
 using BookLibrary.API.Repository.IRepository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace BookLibrary.API.Controllers;
 
@@ -25,10 +26,20 @@ public class BooksController : ControllerBase
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<BookDto>>> GetBooks(CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<BookDto>>> GetBooks(CancellationToken cancellationToken,
+        [FromQuery, Range(1, 100)] int pageSize = 10, [FromQuery] int pageNumber = 1)
     {
-        var bookList = await _bookRepository.GetAllAsync(tracked: false, includeProperties: "Category", cancellationToken: cancellationToken);
-        var response = _mapper.Map<IEnumerable<BookDto>>(bookList);
+        var bookList = await _bookRepository.GetAllAsync(tracked: false, includeProperties: "Category", cancellationToken: cancellationToken, pageSize: pageSize, pageNumber: pageNumber);
+        var totalCount = await _bookRepository.CountAsync(cancellationToken: cancellationToken);
+        var items = _mapper.Map<IEnumerable<BookDto>>(bookList);
+        var response = new PagedResponse<BookDto>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            Items = items
+        };
         return Ok(response);
     }
 

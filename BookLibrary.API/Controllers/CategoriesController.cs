@@ -24,10 +24,20 @@ public class CategoriesController : ControllerBase
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories(CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<CategoryDto>>> GetCategories(CancellationToken cancellationToken,
+        [FromQuery, Range(1, 100)] int pageSize = 10, [FromQuery] int pageNumber = 1)
     {
         var categoryList = await _categoryRepository.GetAllAsync(tracked: false, cancellationToken: cancellationToken);
-        var response = _mapper.Map<IEnumerable<CategoryDto>>(categoryList);
+        var totalCount = await _categoryRepository.CountAsync(cancellationToken: cancellationToken);
+        var items = _mapper.Map<IEnumerable<CategoryDto>>(categoryList);
+        var response = new PagedResponse<CategoryDto>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            Items = items
+        };
         return Ok(response);
     }
 
