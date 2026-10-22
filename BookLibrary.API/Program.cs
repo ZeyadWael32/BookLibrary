@@ -45,7 +45,9 @@ builder.Services
         options.Audience = builder.Configuration["Keycloak:Audience"];
 
         // Local development only: Keycloak uses HTTP.
-        options.RequireHttpsMetadata = false;
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+
+        options.MapInboundClaims = false; // Prevents mapping of claim types to Microsoft-specific claim types.
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -56,9 +58,18 @@ builder.Services
             ValidAudience = builder.Configuration["Keycloak:Audience"],
 
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromSeconds(30)
+            ClockSkew = TimeSpan.FromSeconds(30),
+
+            RoleClaimType = "roles",
+            NameClaimType = "preferred_username"
         };
     });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("CatalogWriter", policy =>
+        policy.RequireRole("catalog-writer"));
+});
 
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
