@@ -27,7 +27,9 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PagedResponse<CategoryDto>>> GetCategories(CancellationToken cancellationToken,
-        [FromQuery, Range(1, 100)] int pageSize = 10, [FromQuery, Range(1, int.MaxValue)] int pageNumber = 1)
+
+        [FromQuery, Range(1, 100)] int pageSize = 10,
+        [FromQuery, Range(1, int.MaxValue)] int pageNumber = 1)
     {
         var categoryList = await _categoryRepository.GetAllAsync(tracked: false, cancellationToken: cancellationToken, pageSize: pageSize, pageNumber: pageNumber);
         var totalCount = await _categoryRepository.CountAsync(cancellationToken: cancellationToken);

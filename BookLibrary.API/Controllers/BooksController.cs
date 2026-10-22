@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BookLibrary.API.Models;
 using BookLibrary.API.Models.Dto;
+using BookLibrary.API.Models.Queries;
 using BookLibrary.API.Repository.IRepository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,18 +28,25 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<PagedResponse<BookDto>>> GetBooks(CancellationToken cancellationToken,
-        [FromQuery, Range(1, 100)] int pageSize = 10, [FromQuery, Range(1, int.MaxValue)] int pageNumber = 1)
+    public async Task<ActionResult<PagedResponse<BookDto>>> GetBooks([FromQuery] BookQueryParameters query, CancellationToken cancellationToken)
     {
-        var bookList = await _bookRepository.GetAllAsync(tracked: false, includeProperties: "Category", cancellationToken: cancellationToken, pageSize: pageSize, pageNumber: pageNumber);
-        var totalCount = await _bookRepository.CountAsync(cancellationToken: cancellationToken);
+        var filter = query.ToFilter();
+
+        var bookList = await _bookRepository.GetAllAsync(filter: filter,
+            tracked: false,
+            includeProperties: "Category",
+            cancellationToken: cancellationToken,
+            pageSize: query.PageSize,
+            pageNumber: query.PageNumber);
+
+        var totalCount = await _bookRepository.CountAsync(filter: filter, cancellationToken: cancellationToken);
         var items = _mapper.Map<IEnumerable<BookDto>>(bookList);
         var response = new PagedResponse<BookDto>
         {
-            PageNumber = pageNumber,
-            PageSize = pageSize,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
             TotalCount = totalCount,
-            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            TotalPages = (int)Math.Ceiling(totalCount / (double)query.PageSize),
             Items = items
         };
         return Ok(response);
