@@ -3,21 +3,23 @@ using BookLibrary.API.Models;
 using BookLibrary.API.Models.Dto;
 using BookLibrary.API.Models.Queries;
 using BookLibrary.API.Repository.IRepository;
+using BookLibrary.API.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
 
 namespace BookLibrary.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class BooksController : ControllerBase
+public class BooksController : ApiControllerBase
 {
+    private readonly IBookService _bookService;
     private readonly IBookRepository _bookRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly IMapper _mapper;
-    public BooksController(IBookRepository bookRepository, ICategoryRepository categoryRepository, IMapper mapper)
+    public BooksController(IBookService bookService, IBookRepository bookRepository, ICategoryRepository categoryRepository, IMapper mapper)
     {
+        _bookService = bookService;
         _bookRepository = bookRepository;
         _categoryRepository = categoryRepository;
         _mapper = mapper;
@@ -30,25 +32,7 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PagedResponse<BookDto>>> GetBooks([FromQuery] BookQueryParameters query, CancellationToken cancellationToken)
     {
-        var filter = query.ToFilter();
-
-        var bookList = await _bookRepository.GetAllAsync(filter: filter,
-            tracked: false,
-            includeProperties: "Category",
-            cancellationToken: cancellationToken,
-            pageSize: query.PageSize,
-            pageNumber: query.PageNumber);
-
-        var totalCount = await _bookRepository.CountAsync(filter: filter, cancellationToken: cancellationToken);
-        var items = _mapper.Map<IEnumerable<BookDto>>(bookList);
-        var response = new PagedResponse<BookDto>
-        {
-            PageNumber = query.PageNumber,
-            PageSize = query.PageSize,
-            TotalCount = totalCount,
-            TotalPages = (int)Math.Ceiling(totalCount / (double)query.PageSize),
-            Items = items
-        };
+        var response = await _bookService.GetPagedAsync(query, cancellationToken);
         return Ok(response);
     }
 
@@ -59,13 +43,12 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BookDto>> GetBook(int id, CancellationToken cancellationToken)
     {
-        var book = await _bookRepository.GetAsync(u => u.Id == id, tracked: false, includeProperties: "Category", cancellationToken: cancellationToken);
+        var book = await _bookService.GetByIdAsync(id, cancellationToken);
         if (book is null)
         {
             return NotFound();
         }
-        var response = _mapper.Map<BookDto>(book);
-        return Ok(response);
+        return Ok(book);
     }
 
     [HttpPost]
@@ -78,33 +61,14 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BookDto>> CreateBook([FromBody] BookCreateDto createDto, CancellationToken cancellationToken)
     {
-        var category = await _categoryRepository.GetAsync(c => c.Id == createDto.CategoryId, tracked: false, cancellationToken: cancellationToken);
+        var result = await _bookService.CreateAsync(createDto, cancellationToken);
 
-        if (category is null)
+        if (!result.IsSuccess)
         {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid category",
-                Detail = "The provided category ID is invalid."
-            });
+            return ToErrorResponse(result);
         }
 
-        if (await _bookRepository.IsbnExistsAsync(createDto.Isbn, cancellationToken: cancellationToken))
-        {
-            return Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "ISBN already exists",
-                Detail = "A book with the provided ISBN already exists."
-            });
-        }
-
-        Book book = _mapper.Map<Book>(createDto);
-        await _bookRepository.CreateAsync(book, cancellationToken);
-        var createdBook = await _bookRepository.GetAsync(u => u.Id == book.Id, tracked: false, includeProperties: "Category", cancellationToken: cancellationToken);
-        var response = _mapper.Map<BookDto>(createdBook);
-        return CreatedAtRoute("GetBook", new { id = book.Id }, response);
+        return CreatedAtRoute("GetBook", new { id = result.Data!.Id }, result.Data);
     }
 
     [HttpPut("{id:int}", Name = "UpdateBook")]
@@ -118,40 +82,12 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<BookDto>> UpdateBook(int id, [FromBody] BookUpdateDto updateDto, CancellationToken cancellationToken)
     {
-        var bookToUpdate = await _bookRepository.GetAsync(u => u.Id == id, tracked: true, includeProperties: "Category", cancellationToken: cancellationToken);
-
-        if (bookToUpdate is null)
+        var result = await _bookService.UpdateAsync(id, updateDto, cancellationToken);
+        if (!result.IsSuccess)
         {
-            return NotFound();
+            return ToErrorResponse(result);
         }
-
-        var category = await _categoryRepository.GetAsync(c => c.Id == updateDto.CategoryId, tracked: false, cancellationToken: cancellationToken);
-
-        if (category is null)
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Invalid category",
-                Detail = "The provided category ID is invalid."
-            });
-        }
-
-        if (await _bookRepository.IsbnExistsAsync(updateDto.Isbn, excludeId: id, cancellationToken: cancellationToken))
-        {
-            return Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "ISBN already exists",
-                Detail = "A book with the provided ISBN already exists."
-            });
-        }
-
-        _mapper.Map(updateDto, bookToUpdate); // Map the updateDto to the existing book entity not creating a new instance
-        await _bookRepository.UpdateAsync(bookToUpdate, cancellationToken);
-        var updatedBook = await _bookRepository.GetAsync(u => u.Id == bookToUpdate.Id, tracked: false, includeProperties: "Category", cancellationToken: cancellationToken);
-        var response = _mapper.Map<BookDto>(updatedBook);
-        return Ok(response);
+        return Ok(result.Data);
     }
 
     [HttpDelete("{id:int}")]

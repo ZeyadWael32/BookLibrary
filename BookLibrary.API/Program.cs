@@ -3,6 +3,8 @@ using BookLibrary.API.Data;
 using BookLibrary.API.Exceptions;
 using BookLibrary.API.Repository;
 using BookLibrary.API.Repository.IRepository;
+using BookLibrary.API.Services;
+using BookLibrary.API.Services.IServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -26,6 +28,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Repositories
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+
+builder.Services.AddScoped<IBookService, BookService>();
 
 // AutoMapper
 builder.Services.AddAutoMapper(cfg =>
