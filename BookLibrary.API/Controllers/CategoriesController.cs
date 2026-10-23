@@ -1,8 +1,5 @@
-﻿using AutoMapper;
-using BookLibrary.API.Models;
-using BookLibrary.API.Models.Dto;
-using BookLibrary.API.Repository;
-using BookLibrary.API.Repository.IRepository;
+﻿using BookLibrary.API.Models.Dto;
+using BookLibrary.API.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -11,116 +8,80 @@ namespace BookLibrary.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class CategoriesController : ControllerBase
+public class CategoriesController : ApiControllerBase
 {
-    private readonly ICategoryRepository _categoryRepository;
-    private readonly IMapper _mapper;
-    public CategoriesController(ICategoryRepository categoryRepository, IMapper mapper)
+    private readonly ICategoryService _categoryService;
+
+    public CategoriesController(ICategoryService categoryService)
     {
-        _categoryRepository = categoryRepository;
-        _mapper = mapper;
+        _categoryService = categoryService;
     }
 
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<CategoryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<PagedResponse<CategoryDto>>> GetCategories(CancellationToken cancellationToken,
-
+    public async Task<ActionResult<PagedResponse<CategoryDto>>> GetCategories(
+        CancellationToken cancellationToken,
         [FromQuery, Range(1, 100)] int pageSize = 10,
-        [FromQuery, Range(1, int.MaxValue)] int pageNumber = 1)
+        [FromQuery, Range(1, 100_000)] int pageNumber = 1)
     {
-        var categoryList = await _categoryRepository.GetAllAsync(tracked: false, cancellationToken: cancellationToken, pageSize: pageSize, pageNumber: pageNumber);
-        var totalCount = await _categoryRepository.CountAsync(cancellationToken: cancellationToken);
-        var items = _mapper.Map<IEnumerable<CategoryDto>>(categoryList);
-        var response = new PagedResponse<CategoryDto>
-        {
-            PageNumber = pageNumber,
-            PageSize = pageSize,
-            TotalCount = totalCount,
-            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-            Items = items
-        };
+        var response = await _categoryService.GetPagedAsync(pageNumber, pageSize, cancellationToken);
         return Ok(response);
     }
 
     [HttpGet("{id:int}", Name = "GetCategory")]
     [AllowAnonymous]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CategoryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CategoryDto>> GetCategory(int id, CancellationToken cancellationToken)
     {
-        var category = await _categoryRepository.GetAsync(u => u.Id == id, tracked: false, cancellationToken: cancellationToken);
+        var category = await _categoryService.GetByIdAsync(id, cancellationToken);
         if (category is null)
-        {
             return NotFound();
-        }
-        var response = _mapper.Map<CategoryDto>(category);
-        return Ok(response);
+
+        return Ok(category);
     }
 
     [HttpPost]
     [Authorize(Policy = "CatalogWriter")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CategoryDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<CategoryDto>> CreateCategory([FromBody] CategoryCreateDto createDto, CancellationToken cancellationToken)
+    public async Task<ActionResult<CategoryDto>> CreateCategory(
+        [FromBody] CategoryCreateDto createDto, CancellationToken cancellationToken)
     {
-        if (await _categoryRepository.NameExistsAsync(createDto.Name, cancellationToken: cancellationToken))
-        {
-            return Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Category name already exists",
-                Detail = "A category with the provided name already exists."
-            });
-        }
+        var result = await _categoryService.CreateAsync(createDto, cancellationToken);
 
-        Category category = _mapper.Map<Category>(createDto);
-        await _categoryRepository.CreateAsync(category, cancellationToken);
-        var createdCategory = await _categoryRepository.GetAsync(u => u.Id == category.Id, tracked: false, cancellationToken: cancellationToken);
-        var response = _mapper.Map<CategoryDto>(createdCategory);
-        return CreatedAtRoute("GetCategory", new { id = category.Id }, response);
+        if (!result.IsSuccess)
+            return ToErrorResponse(result);
+
+        return CreatedAtRoute("GetCategory", new { id = result.Data!.Id }, result.Data);
     }
 
     [HttpPut("{id:int}", Name = "UpdateCategory")]
     [Authorize(Policy = "CatalogWriter")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CategoryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<CategoryDto>> UpdateCategory(int id, [FromBody] CategoryUpdateDto updateDto, CancellationToken cancellationToken)
+    public async Task<ActionResult<CategoryDto>> UpdateCategory(
+        int id, [FromBody] CategoryUpdateDto updateDto, CancellationToken cancellationToken)
     {
-        var category = await _categoryRepository.GetAsync(u => u.Id == id, tracked: true, cancellationToken: cancellationToken);
+        var result = await _categoryService.UpdateAsync(id, updateDto, cancellationToken);
 
-        if (category is null)
-        {
-            return NotFound();
-        }
+        if (!result.IsSuccess)
+            return ToErrorResponse(result);
 
-        if (await _categoryRepository.NameExistsAsync(updateDto.Name, id, cancellationToken: cancellationToken))
-        {
-            return Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Category name already exists",
-                Detail = "A category with the provided name already exists."
-            });
-        }
-
-        _mapper.Map(updateDto, category);
-        await _categoryRepository.UpdateAsync(category, cancellationToken);
-        var updatedCategory = await _categoryRepository.GetAsync(u => u.Id == category.Id, tracked: false, cancellationToken: cancellationToken);
-        var response = _mapper.Map<CategoryDto>(updatedCategory);
-        return Ok(response);
+        return Ok(result.Data);
     }
 
     [HttpDelete("{id:int}")]
@@ -133,23 +94,11 @@ public class CategoriesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> DeleteCategory(int id, CancellationToken cancellationToken)
     {
-        var category = await _categoryRepository.GetAsync(u => u.Id == id, tracked: true, cancellationToken: cancellationToken);
-        if (category is null)
-        {
-            return NotFound();
-        }
+        var result = await _categoryService.DeleteAsync(id, cancellationToken);
 
-        if (await _categoryRepository.HasBooksAsync(id, cancellationToken))
-        {
-            return Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Category has associated books",
-                Detail = "Cannot delete a category that has associated books."
-            });
-        }
+        if (!result.IsSuccess)
+            return ToErrorResponse(result);
 
-        await _categoryRepository.RemoveAsync(category, cancellationToken);
         return NoContent();
     }
 }

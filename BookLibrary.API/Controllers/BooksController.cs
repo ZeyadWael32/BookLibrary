@@ -14,15 +14,9 @@ namespace BookLibrary.API.Controllers;
 public class BooksController : ApiControllerBase
 {
     private readonly IBookService _bookService;
-    private readonly IBookRepository _bookRepository;
-    private readonly ICategoryRepository _categoryRepository;
-    private readonly IMapper _mapper;
-    public BooksController(IBookService bookService, IBookRepository bookRepository, ICategoryRepository categoryRepository, IMapper mapper)
+    public BooksController(IBookService bookService)
     {
         _bookService = bookService;
-        _bookRepository = bookRepository;
-        _categoryRepository = categoryRepository;
-        _mapper = mapper;
     }
 
     [HttpGet]
@@ -99,12 +93,11 @@ public class BooksController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteBook(int id, CancellationToken cancellationToken)
     {
-        var book = await _bookRepository.GetAsync(u => u.Id == id, tracked: true, includeProperties: "Category", cancellationToken: cancellationToken);
-        if (book is null)
+        var result = await _bookService.DeleteAsync(id, cancellationToken);
+        if (!result.IsSuccess)
         {
-            return NotFound();
+            return ToErrorResponse(result);
         }
-        await _bookRepository.RemoveAsync(book, cancellationToken);
         return NoContent();
     }
 }
