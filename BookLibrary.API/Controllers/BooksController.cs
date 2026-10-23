@@ -32,6 +32,7 @@ public class BooksController : ApiControllerBase
 
     [HttpGet("{id:int}", Name = "GetBook")]
     [AllowAnonymous]
+    [ResponseCache(CacheProfileName = "Default30")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]

@@ -6,6 +6,7 @@ using BookLibrary.API.Repository.IRepository;
 using BookLibrary.API.Services;
 using BookLibrary.API.Services.IServices;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -25,11 +26,15 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+builder.Services.AddResponseCaching();
+
 // Repositories
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
+// Services
 builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 // AutoMapper
 builder.Services.AddAutoMapper(cfg =>
@@ -38,7 +43,14 @@ builder.Services.AddAutoMapper(cfg =>
 });
 
 // Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.CacheProfiles.Add("Default30",
+        new CacheProfile()
+        {
+            Duration = 30
+        });
+});
 
 // Keycloak JWT Authentication
 builder.Services

@@ -33,6 +33,7 @@ public class CategoriesController : ApiControllerBase
 
     [HttpGet("{id:int}", Name = "GetCategory")]
     [AllowAnonymous]
+    [ResponseCache(CacheProfileName = "Default30")]
     [ProducesResponseType(typeof(CategoryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
